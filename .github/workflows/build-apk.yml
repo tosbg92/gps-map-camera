@@ -43,16 +43,16 @@ jobs:
           # Force remove all previous node_modules/locks
           rm -rf node_modules package-lock.json
 
-      - name: Clean Install Node 20 Dependencies
+      - name: Clean Install Node 20 & Capacitor Dependencies
         run: |
           npm install
-          npm install @tailwindcss/oxide-linux-x64-gnu --save-optional || true
+          npm install @capacitor/core @capacitor/cli --save-dev
 
       - name: Build React Web App
         run: npm run build
 
       - name: Sync Capacitor Android Project
-        run: npx cap sync android
+        run: npx @capacitor/cli sync android
 
       - name: Build Android Debug APK
         run: |
