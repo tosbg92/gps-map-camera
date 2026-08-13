@@ -13,27 +13,28 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Extract ZIP & Flatten Directory
+      - name: Extract ZIP & Move Everything to Root
         run: |
-          echo "Extracting zip..."
+          echo "Extracting zip files..."
           unzip -o *.zip
           
-          PKG_PATH=$(find . -name "package.json" -not -path "*/node_modules/*" | head -n 1)
+          # Remove pre-existing Windows node_modules inside zip folders
+          echo "Removing nested node_modules..."
+          find . -name "node_modules" -type d -prune -exec rm -rf {} +
+          find . -name "package-lock.json" -delete
+          
+          # Find package.json location
+          PKG_PATH=$(find . -name "package.json" | head -n 1)
           echo "Found package.json at: $PKG_PATH"
           
           if [ -n "$PKG_PATH" ]; then
             TARGET_DIR=$(dirname "$PKG_PATH")
             if [ "$TARGET_DIR" != "." ]; then
-              echo "Copying contents from $TARGET_DIR to root..."
-              cp -rn "$TARGET_DIR"/* . || true
-              cp -rn "$TARGET_DIR"/.* . 2>/dev/null || true
+              echo "Moving contents from $TARGET_DIR to root..."
+              cp -rf "$TARGET_DIR"/* . || true
+              cp -rf "$TARGET_DIR"/.* . 2>/dev/null || true
             fi
           fi
-
-      - name: Clean Old node_modules & Locks
-        run: |
-          echo "Cleaning pre-existing node_modules..."
-          rm -rf node_modules package-lock.json
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -46,8 +47,8 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Clean Install Dependencies for Linux
-        run: npm install
+      - name: Clean Install Linux Dependencies
+        run: npm install --include=optional
 
       - name: Build React Web App
         run: npm run build
