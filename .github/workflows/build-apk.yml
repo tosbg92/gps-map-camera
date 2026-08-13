@@ -13,28 +13,23 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Extract ZIP & Move Everything to Root
+      - name: Unzip and Fix Directory Structure
         run: |
-          echo "Extracting zip files..."
-          unzip -o *.zip
-          
-          # Remove pre-existing Windows node_modules inside zip folders
-          echo "Removing nested node_modules..."
-          find . -name "node_modules" -type d -prune -exec rm -rf {} +
-          find . -name "package-lock.json" -delete
-          
-          # Find package.json location
-          PKG_PATH=$(find . -name "package.json" | head -n 1)
-          echo "Found package.json at: $PKG_PATH"
-          
-          if [ -n "$PKG_PATH" ]; then
-            TARGET_DIR=$(dirname "$PKG_PATH")
-            if [ "$TARGET_DIR" != "." ]; then
-              echo "Moving contents from $TARGET_DIR to root..."
-              cp -rf "$TARGET_DIR"/* . || true
-              cp -rf "$TARGET_DIR"/.* . 2>/dev/null || true
-            fi
+          echo "Unzipping file..."
+          unzip -o *.zip || true
+
+          # If code is nested inside gps-map-camera folder, move it to root
+          if [ -d "gps-map-camera" ]; then
+            echo "Moving inner folder files to root..."
+            cp -rn gps-map-camera/* . || true
+            cp -rn gps-map-camera/.* . 2>/dev/null || true
           fi
+
+          # Forcefully clean any old Windows node_modules & lockfiles
+          echo "Force cleaning pre-existing node_modules and lockfiles..."
+          rm -rf node_modules package-lock.json
+          find . -name "node_modules" -exec rm -rf {} + 2>/dev/null || true
+          find . -name "package-lock.json" -exec rm -rf {} + 2>/dev/null || true
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -47,8 +42,10 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Clean Install Linux Dependencies
-        run: npm install --include=optional
+      - name: Install Linux Dependencies & Native Bindings
+        run: |
+          npm install --force
+          npm rebuild
 
       - name: Build React Web App
         run: npm run build
@@ -70,7 +67,7 @@ jobs:
           cd android
           ./gradlew assembleDebug
 
-      - name: Upload APK
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: GPS-Map-Camera-APK
