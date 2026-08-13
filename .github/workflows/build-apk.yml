@@ -59,6 +59,14 @@ jobs:
 
           npx cap sync android
 
+      - name: Fix Android SDK Version to 36
+        run: |
+          echo "Updating Android SDK to 36..."
+          if [ -f "android/variables.gradle" ]; then
+            sed -i 's/compileSdkVersion = .*/compileSdkVersion = 36/g' android/variables.gradle
+            sed -i 's/targetSdkVersion = .*/targetSdkVersion = 36/g' android/variables.gradle
+          fi
+
       - name: Inject Android Native Permissions
         run: |
           node -e '
