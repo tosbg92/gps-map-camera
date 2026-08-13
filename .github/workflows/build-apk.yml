@@ -59,13 +59,16 @@ jobs:
 
           npx cap sync android
 
-      - name: Fix Android SDK Version to 36
+      - name: Fix SDK & Force Compatible AndroidX Versions
         run: |
-          echo "Updating Android SDK to 36..."
+          echo "Fixing SDK and Dependency conflicts..."
           if [ -f "android/variables.gradle" ]; then
             sed -i 's/compileSdkVersion = .*/compileSdkVersion = 36/g' android/variables.gradle
             sed -i 's/targetSdkVersion = .*/targetSdkVersion = 36/g' android/variables.gradle
           fi
+          
+          # Lock androidx.core to version 1.15.0 compatible with AGP 8.7.2
+          echo 'allprojects { configurations.all { resolutionStrategy { force "androidx.core:core-ktx:1.15.0", "androidx.core:core:1.15.0" } } }' >> android/build.gradle
 
       - name: Inject Android Native Permissions
         run: |
