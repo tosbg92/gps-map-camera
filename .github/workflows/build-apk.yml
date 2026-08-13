@@ -1,4 +1,4 @@
-name: Build Capacitor Android APK
+qname: Build Capacitor Android APK
 
 on:
   push:
@@ -59,12 +59,13 @@ jobs:
 
           npx cap sync android
 
-      - name: Fix SDK & Force Compatible AndroidX Versions
+      - name: Fix SDK, minSdk & Force Compatible AndroidX Versions
         run: |
           echo "Fixing SDK and Dependency conflicts..."
           if [ -f "android/variables.gradle" ]; then
             sed -i 's/compileSdkVersion = .*/compileSdkVersion = 36/g' android/variables.gradle
             sed -i 's/targetSdkVersion = .*/targetSdkVersion = 36/g' android/variables.gradle
+            sed -i 's/minSdkVersion = .*/minSdkVersion = 24/g' android/variables.gradle
           fi
           
           # Lock androidx.core to version 1.15.0 compatible with AGP 8.7.2
