@@ -13,23 +13,26 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Unzip and Fix Directory Structure
+      - name: Smart Unzip & Deep Clean
         run: |
-          echo "Unzipping file..."
-          unzip -o *.zip || true
-
-          # If code is nested inside gps-map-camera folder, move it to root
-          if [ -d "gps-map-camera" ]; then
-            echo "Moving inner folder files to root..."
-            cp -rn gps-map-camera/* . || true
-            cp -rn gps-map-camera/.* . 2>/dev/null || true
-          fi
-
-          # Forcefully clean any old Windows node_modules & lockfiles
-          echo "Force cleaning pre-existing node_modules and lockfiles..."
-          rm -rf node_modules package-lock.json
-          find . -name "node_modules" -exec rm -rf {} + 2>/dev/null || true
-          find . -name "package-lock.json" -exec rm -rf {} + 2>/dev/null || true
+          echo "Starting Smart Extract..."
+          
+          # Create a temp directory to safely extract zip
+          mkdir -p temp_extract
+          unzip -o *.zip -d temp_extract/ || true
+          
+          # Find the exact folder containing package.json inside zip
+          PKG_LOCATION=$(find temp_extract -name "package.json" -not -path "*/node_modules/*" | head -n 1)
+          SOURCE_DIR=$(dirname "$PKG_LOCATION")
+          echo "Source code found at: $SOURCE_DIR"
+          
+          # Remove any bundled node_modules or package-lock inside zip to force clean Linux build
+          rm -rf "$SOURCE_DIR/node_modules" "$SOURCE_DIR/package-lock.json"
+          
+          # Copy all clean files to current working directory
+          cp -rf "$SOURCE_DIR"/* . /dev/null 2>&1 || true
+          cp -rf "$SOURCE_DIR"/.* . /dev/null 2>&1 || true
+          rm -rf temp_extract
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -42,10 +45,10 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Install Linux Dependencies & Native Bindings
+      - name: Fresh Install Linux Dependencies
         run: |
-          npm install --force
-          npm rebuild
+          rm -rf node_modules package-lock.json
+          npm install --platform=linux --arch=x64
 
       - name: Build React Web App
         run: npm run build
@@ -67,7 +70,7 @@ jobs:
           cd android
           ./gradlew assembleDebug
 
-      - name: Upload APK Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: GPS-Map-Camera-APK
