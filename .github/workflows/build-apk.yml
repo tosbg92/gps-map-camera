@@ -1,4 +1,4 @@
-qname: Build Capacitor Android APK
+name: Build Capacitor Android APK
 
 on:
   push:
